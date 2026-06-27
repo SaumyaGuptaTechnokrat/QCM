@@ -49,6 +49,9 @@
 <!-- MAIN APP -->
 <div id="mainApp" class="app-container hidden">
 
+  <!-- SIDEBAR OVERLAY (mobile only) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
@@ -80,7 +83,10 @@
     <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-left">
-        <button class="hamburger" id="hamburger" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+        <!-- Hamburger: toggles collapse on desktop, overlay on mobile -->
+        <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+          <i class="fa fa-bars"></i>
+        </button>
         <h1 class="page-title" id="pageTitle">QC Dashboard</h1>
       </div>
       <div class="topbar-right">
@@ -265,7 +271,6 @@
             <button class="btn-export" onclick="exportTableExcel('releaseTable','Product_Release')"><i class="fa fa-file-excel"></i> Export</button>
           </div>
         </div>
-        <!-- TAT Summary -->
         <div class="mini-kpi-row">
           <div class="mini-kpi"><span class="mk-val">3.2d</span><span class="mk-lbl">Avg TAT</span></div>
           <div class="mini-kpi"><span class="mk-val green-text">94%</span><span class="mk-lbl">Within SLA</span></div>
@@ -297,7 +302,6 @@
             <button class="btn-export" onclick="exportTableExcel('oosTable','OOS_Management')"><i class="fa fa-file-excel"></i> Export</button>
           </div>
         </div>
-        <!-- OOS Aging -->
         <div class="mini-kpi-row">
           <div class="mini-kpi red-bg"><span class="mk-val">3</span><span class="mk-lbl">&gt;30 Days</span></div>
           <div class="mini-kpi orange-bg"><span class="mk-val">6</span><span class="mk-lbl">15–30 Days</span></div>
