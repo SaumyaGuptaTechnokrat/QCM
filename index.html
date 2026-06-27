@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SD BIOSENSOR – QC Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="light-mode" id="appBody">
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon"><i class="fa-solid fa-dna"></i></div>
+      <div>
+        <div class="logo-brand">SD BIOSENSOR</div>
+        <div class="logo-sub">Quality Control Management System</div>
+      </div>
+    </div>
+    <h2 class="login-title">Sign In</h2>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="loginPass" placeholder="Enter password">
+        <span class="pw-eye" onclick="togglePw()"><i class="fa fa-eye"></i></span>
+      </div>
+    </div>
+    <div id="loginError" class="login-error hidden">Invalid credentials. Try again.</div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-hints">
+      <p><b>QC Manager:</b> admin / admin123</p>
+      <p><b>QC Analyst:</b> analyst / qc2024</p>
+      <p><b>QC Viewer:</b> viewer / view123</p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="app-container hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon-sm"><i class="fa-solid fa-dna"></i></div>
+      <span class="sidebar-brand">SD BIOSENSOR</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard"><i class="fa fa-th-large"></i><span>Dashboard</span></a>
+      <a href="#" class="nav-item" data-page="product-release"><i class="fa fa-box-open"></i><span>Product Release</span></a>
+      <a href="#" class="nav-item" data-page="oos"><i class="fa fa-triangle-exclamation"></i><span>OOS Management</span></a>
+      <a href="#" class="nav-item" data-page="change-control"><i class="fa fa-shuffle"></i><span>Change Control</span></a>
+      <a href="#" class="nav-item" data-page="capa"><i class="fa fa-shield-halved"></i><span>CAPA</span></a>
+      <a href="#" class="nav-item" data-page="stability"><i class="fa fa-flask"></i><span>Stability Studies</span></a>
+      <a href="#" class="nav-item" data-page="complaints"><i class="fa fa-comments"></i><span>Complaints</span></a>
+      <a href="#" class="nav-item" data-page="calibration"><i class="fa fa-gauge-high"></i><span>Calibration</span></a>
+      <a href="#" class="nav-item" data-page="training"><i class="fa fa-graduation-cap"></i><span>Training</span></a>
+      <a href="#" class="nav-item" data-page="documents"><i class="fa fa-file-alt"></i><span>Documents</span></a>
+      <a href="#" class="nav-item" data-page="audits"><i class="fa fa-clipboard-check"></i><span>Audits</span></a>
+      <a href="#" class="nav-item" data-page="reports"><i class="fa fa-chart-bar"></i><span>Reports</span></a>
+      <a href="#" class="nav-item admin-only" data-page="users" style="display:none"><i class="fa fa-users-cog"></i><span>User Management</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <span id="sidebarRole" class="role-badge"></span>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="mainContent">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+        <h1 class="page-title" id="pageTitle">QC Dashboard</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbarDate"></span>
+        <button class="icon-btn" title="Notifications" onclick="showNotifications()"><i class="fa fa-bell"></i><span class="notif-badge" id="notifBadge">3</span></button>
+        <button class="icon-btn theme-toggle" title="Toggle Dark Mode" onclick="toggleDark()"><i class="fa fa-moon" id="themeIcon"></i></button>
+        <div class="user-menu" onclick="toggleUserMenu()">
+          <div class="avatar"><i class="fa fa-user"></i></div>
+          <span id="userNameTop">QC Manager</span>
+          <i class="fa fa-chevron-down"></i>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-item"><i class="fa fa-user"></i> Profile</div>
+            <div class="dropdown-item"><i class="fa fa-cog"></i> Settings</div>
+            <div class="dropdown-item" onclick="doLogout()"><i class="fa fa-sign-out-alt"></i> Logout</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <div class="page-content" id="pageContent">
+
+      <!-- ===== DASHBOARD PAGE ===== -->
+      <div id="page-dashboard" class="page active">
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <select class="filter-select"><option>All Products</option><option>Rapid Tests</option><option>Molecular</option><option>Immunoassay</option></select>
+          <div class="date-range-picker">
+            <i class="fa fa-calendar"></i>
+            <span id="dateRangeLabel">May 1, 2026 – May 28, 2026</span>
+          </div>
+          <select class="filter-select"><option>All Departments</option><option>Production</option><option>QC Lab</option><option>R&amp;D</option></select>
+          <div class="filter-actions">
+            <button class="btn-export" onclick="exportExcel()"><i class="fa-brands fa-microsoft"></i> Export Excel</button>
+            <button class="btn-export btn-pdf" onclick="exportPDF()"><i class="fa fa-file-pdf"></i> Export PDF</button>
+            <button class="btn-refresh" onclick="refreshData()"><i class="fa fa-sync"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid">
+          <div class="kpi-card" onclick="navigateTo('product-release')">
+            <div class="kpi-icon blue"><i class="fa fa-clipboard-list"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">Product Released</div>
+              <div class="kpi-value" id="kpiReleased">128</div>
+              <div class="kpi-sub">This Month</div>
+              <div class="kpi-trend up"><i class="fa fa-arrow-up"></i> 15.2%</div>
+            </div>
+          </div>
+          <div class="kpi-card" onclick="navigateTo('oos')">
+            <div class="kpi-icon red"><i class="fa fa-triangle-exclamation"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">OOS Investigations</div>
+              <div class="kpi-value" id="kpiOOS">22</div>
+              <div class="kpi-sub">This Month</div>
+              <div class="kpi-trend up"><i class="fa fa-arrow-up"></i> 10.0%</div>
+            </div>
+          </div>
+          <div class="kpi-card" onclick="navigateTo('change-control')">
+            <div class="kpi-icon green"><i class="fa fa-shuffle"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">Change Controls</div>
+              <div class="kpi-value">15</div>
+              <div class="kpi-sub">Open</div>
+              <div class="kpi-trend up"><i class="fa fa-arrow-up"></i> 7.1%</div>
+            </div>
+          </div>
+          <div class="kpi-card" onclick="navigateTo('capa')">
+            <div class="kpi-icon purple"><i class="fa fa-shield-halved"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">CAPA Open</div>
+              <div class="kpi-value">18</div>
+              <div class="kpi-sub">Open</div>
+              <div class="kpi-trend down"><i class="fa fa-arrow-down"></i> 14.3%</div>
+            </div>
+          </div>
+          <div class="kpi-card" onclick="navigateTo('stability')">
+            <div class="kpi-icon teal"><i class="fa fa-flask"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">Stability Studies</div>
+              <div class="kpi-value">32</div>
+              <div class="kpi-sub">Active</div>
+              <div class="kpi-trend up"><i class="fa fa-arrow-up"></i> 6.7%</div>
+            </div>
+          </div>
+          <div class="kpi-card" onclick="navigateTo('complaints')">
+            <div class="kpi-icon orange"><i class="fa fa-comments"></i></div>
+            <div class="kpi-body">
+              <div class="kpi-label">Complaints</div>
+              <div class="kpi-value">9</div>
+              <div class="kpi-sub">Open</div>
+              <div class="kpi-trend down"><i class="fa fa-arrow-down"></i> 18.2%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1.2">
+            <div class="chart-header">
+              <span class="chart-title">Product Release Trend</span>
+              <select class="chart-select"><option>Monthly</option><option>Weekly</option><option>Quarterly</option></select>
+            </div>
+            <canvas id="releaseTrendChart" height="180"></canvas>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">OOS by Root Cause</span></div>
+            <div class="donut-wrap">
+              <canvas id="oosRootChart" height="180"></canvas>
+              <div class="donut-legend" id="oosLegend"></div>
+            </div>
+          </div>
+          <div class="chart-card" style="flex:1.2">
+            <div class="chart-header"><span class="chart-title">Change Control Status</span><span class="chart-sub">Total: 63</span></div>
+            <canvas id="ccStatusChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Gantt + Alerts Row -->
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1.8">
+            <div class="chart-header">
+              <span class="chart-title">QC Activities Gantt Chart</span>
+              <button class="btn-sm" onclick="navigateTo('reports')"><i class="fa fa-expand"></i> View Full Gantt</button>
+            </div>
+            <div class="gantt-container" id="ganttContainer"></div>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">Upcoming Due &amp; Alerts</span></div>
+            <table class="alerts-table" id="alertsTable">
+              <thead><tr><th>Item</th><th>Type</th><th>Due Date</th><th>Status</th></tr></thead>
+              <tbody id="alertsTbody"></tbody>
+            </table>
+            <a href="#" class="view-all-link" onclick="showNotifications()">View all alerts →</a>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1.2">
+            <div class="chart-header">
+              <span class="chart-title">OOS Trend</span>
+              <select class="chart-select"><option>Monthly</option><option>Weekly</option></select>
+            </div>
+            <canvas id="oosTrendChart" height="180"></canvas>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">CAPA Status</span></div>
+            <div class="donut-wrap">
+              <canvas id="capaStatusChart" height="180"></canvas>
+              <div class="donut-legend" id="capaLegend"></div>
+            </div>
+          </div>
+          <div class="chart-card training-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">Training Completion</span></div>
+            <div class="gauge-wrap">
+              <canvas id="trainingGauge" height="160"></canvas>
+              <div class="gauge-label">92%<br><small>Overall Completion</small></div>
+            </div>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">Document Status</span></div>
+            <div class="doc-stats" id="docStats">
+              <div class="doc-total">Total Documents <span>156</span></div>
+              <div class="doc-row"><span>Approved</span><span class="doc-count green-text">124 (79.5%)</span></div>
+              <div class="doc-row"><span>Under Review</span><span class="doc-count orange-text">18 (11.5%)</span></div>
+              <div class="doc-row"><span>Obsolete</span><span class="doc-count red-text">14 (9.0%)</span></div>
+            </div>
+            <canvas id="docStatusChart" height="120"></canvas>
+            <a href="#" class="view-all-link" onclick="navigateTo('documents')">View all documents →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PRODUCT RELEASE PAGE ===== -->
+      <div id="page-product-release" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Product Release Management</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('releaseModal')"><i class="fa fa-plus"></i> New Release</button>
+            <button class="btn-export" onclick="exportTableExcel('releaseTable','Product_Release')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <!-- TAT Summary -->
+        <div class="mini-kpi-row">
+          <div class="mini-kpi"><span class="mk-val">3.2d</span><span class="mk-lbl">Avg TAT</span></div>
+          <div class="mini-kpi"><span class="mk-val green-text">94%</span><span class="mk-lbl">Within SLA</span></div>
+          <div class="mini-kpi"><span class="mk-val orange-text">8</span><span class="mk-lbl">Pending Review</span></div>
+          <div class="mini-kpi"><span class="mk-val">128</span><span class="mk-lbl">Released MTD</span></div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search..." onkeyup="filterTable('releaseTable',this.value)">
+            <select class="filter-select sm" onchange="filterTableCol('releaseTable',4,this.value)">
+              <option value="">All Status</option><option>Approved</option><option>Pending</option><option>Rejected</option>
+            </select>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="releaseTable">
+              <thead><tr><th>Lot No.</th><th>Product</th><th>Batch Size</th><th>Release Date</th><th>Status</th><th>TAT (days)</th><th>Analyst</th><th>Actions</th></tr></thead>
+              <tbody id="releaseTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== OOS MANAGEMENT PAGE ===== -->
+      <div id="page-oos" class="page hidden">
+        <div class="page-toolbar">
+          <h2>OOS / OOT Management</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('oosModal')"><i class="fa fa-plus"></i> New OOS</button>
+            <button class="btn-export" onclick="exportTableExcel('oosTable','OOS_Management')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <!-- OOS Aging -->
+        <div class="mini-kpi-row">
+          <div class="mini-kpi red-bg"><span class="mk-val">3</span><span class="mk-lbl">&gt;30 Days</span></div>
+          <div class="mini-kpi orange-bg"><span class="mk-val">6</span><span class="mk-lbl">15–30 Days</span></div>
+          <div class="mini-kpi yellow-bg"><span class="mk-val">9</span><span class="mk-lbl">7–14 Days</span></div>
+          <div class="mini-kpi green-bg"><span class="mk-val">4</span><span class="mk-lbl">&lt;7 Days</span></div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search OOS..." onkeyup="filterTable('oosTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="oosTable">
+              <thead><tr><th>OOS No.</th><th>Product</th><th>Parameter</th><th>Detection Date</th><th>Root Cause</th><th>Status</th><th>Aging (days)</th><th>Analyst</th><th>Actions</th></tr></thead>
+              <tbody id="oosTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CHANGE CONTROL ===== -->
+      <div id="page-change-control" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Change Control</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('ccModal')"><i class="fa fa-plus"></i> New CC</button>
+            <button class="btn-export" onclick="exportTableExcel('ccTable','Change_Control')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search Change Control..." onkeyup="filterTable('ccTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="ccTable">
+              <thead><tr><th>CC No.</th><th>Title</th><th>Category</th><th>Initiated</th><th>Status</th><th>Risk</th><th>Owner</th><th>Actions</th></tr></thead>
+              <tbody id="ccTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CAPA ===== -->
+      <div id="page-capa" class="page hidden">
+        <div class="page-toolbar">
+          <h2>CAPA Management</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('capaModal')"><i class="fa fa-plus"></i> New CAPA</button>
+            <button class="btn-export" onclick="exportTableExcel('capaTable','CAPA')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="mini-kpi-row">
+          <div class="mini-kpi"><span class="mk-val green-text">9</span><span class="mk-lbl">Closed</span></div>
+          <div class="mini-kpi"><span class="mk-val blue-text">20</span><span class="mk-lbl">In Progress</span></div>
+          <div class="mini-kpi"><span class="mk-val orange-text">10</span><span class="mk-lbl">Awaiting Verification</span></div>
+          <div class="mini-kpi"><span class="mk-val red-text">18</span><span class="mk-lbl">Open</span></div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search CAPA..." onkeyup="filterTable('capaTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="capaTable">
+              <thead><tr><th>CAPA No.</th><th>Title</th><th>Source</th><th>Opened</th><th>Due Date</th><th>Status</th><th>Effectiveness</th><th>Owner</th><th>Actions</th></tr></thead>
+              <tbody id="capaTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STABILITY ===== -->
+      <div id="page-stability" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Stability Studies</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('stabModal')"><i class="fa fa-plus"></i> New Study</button>
+            <button class="btn-export" onclick="exportTableExcel('stabTable','Stability')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="alert-banner" id="stabAlertBanner"></div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search stability..." onkeyup="filterTable('stabTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="stabTable">
+              <thead><tr><th>Study ID</th><th>Product</th><th>Protocol</th><th>Start Date</th><th>Next Pull Date</th><th>Condition</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="stabTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== COMPLAINTS ===== -->
+      <div id="page-complaints" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Customer Complaints</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('complaintModal')"><i class="fa fa-plus"></i> New Complaint</button>
+            <button class="btn-export" onclick="exportTableExcel('complaintTable','Complaints')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search complaints..." onkeyup="filterTable('complaintTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="complaintTable">
+              <thead><tr><th>Complaint No.</th><th>Customer</th><th>Product</th><th>Date</th><th>Category</th><th>Status</th><th>CAPA Linked</th><th>Actions</th></tr></thead>
+              <tbody id="complaintTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CALIBRATION ===== -->
+      <div id="page-calibration" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Calibration Management</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('calibModal')"><i class="fa fa-plus"></i> New Equipment</button>
+            <button class="btn-export" onclick="exportTableExcel('calibTable','Calibration')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="alert-banner" id="calibAlertBanner"></div>
+        <div class="mini-kpi-row">
+          <div class="mini-kpi red-bg"><span class="mk-val">3</span><span class="mk-lbl">Overdue</span></div>
+          <div class="mini-kpi orange-bg"><span class="mk-val">5</span><span class="mk-lbl">Due This Week</span></div>
+          <div class="mini-kpi green-bg"><span class="mk-val">24</span><span class="mk-lbl">Calibrated</span></div>
+          <div class="mini-kpi"><span class="mk-val">32</span><span class="mk-lbl">Total Equipment</span></div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search equipment..." onkeyup="filterTable('calibTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="calibTable">
+              <thead><tr><th>Equip. ID</th><th>Name</th><th>Location</th><th>Last Calibration</th><th>Next Due</th><th>Status</th><th>Vendor</th><th>Actions</th></tr></thead>
+              <tbody id="calibTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TRAINING ===== -->
+      <div id="page-training" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Training Matrix</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('trainingModal')"><i class="fa fa-plus"></i> Add Training</button>
+            <button class="btn-export" onclick="exportTableExcel('trainingTable','Training')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="trainingTable">
+              <thead><tr><th>Employee</th><th>Role</th><th>Module</th><th>Due Date</th><th>Completed</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="trainingTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DOCUMENTS ===== -->
+      <div id="page-documents" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Document Control</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('docModal')"><i class="fa fa-plus"></i> New Document</button>
+            <button class="btn-export" onclick="exportTableExcel('docTable','Documents')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search documents..." onkeyup="filterTable('docTable',this.value)">
+            <select class="filter-select sm" onchange="filterTableCol('docTable',4,this.value)">
+              <option value="">All Status</option><option>Approved</option><option>Under Review</option><option>Obsolete</option><option>Draft</option>
+            </select>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="docTable">
+              <thead><tr><th>Doc No.</th><th>Title</th><th>Category</th><th>Version</th><th>Status</th><th>Review Date</th><th>Owner</th><th>Actions</th></tr></thead>
+              <tbody id="docTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AUDITS ===== -->
+      <div id="page-audits" class="page hidden">
+        <div class="page-toolbar">
+          <h2>Audit Observation Tracker</h2>
+          <div class="toolbar-actions">
+            <button class="btn-primary admin-only" onclick="openModal('auditModal')"><i class="fa fa-plus"></i> New Observation</button>
+            <button class="btn-export" onclick="exportTableExcel('auditTable','Audits')"><i class="fa fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input type="text" class="table-search" placeholder="Search audits..." onkeyup="filterTable('auditTable',this.value)">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="auditTable">
+              <thead><tr><th>Obs. No.</th><th>Audit Type</th><th>Observation</th><th>Severity</th><th>Due Date</th><th>Status</th><th>CAPA Ref</th><th>Actions</th></tr></thead>
+              <tbody id="auditTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REPORTS ===== -->
+      <div id="page-reports" class="page hidden">
+        <div class="page-toolbar"><h2>Management Review &amp; Reports</h2></div>
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">Monthly KPI Summary</span></div>
+            <canvas id="kpiSummaryChart" height="220"></canvas>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">OOS by Department</span></div>
+            <canvas id="oosDeptChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">Product Release TAT Distribution</span></div>
+            <canvas id="tatChart" height="220"></canvas>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header"><span class="chart-title">CAPA Effectiveness Rate</span></div>
+            <canvas id="capaEffChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="full-gantt-section">
+          <div class="chart-header"><span class="chart-title">Full Activity Gantt</span></div>
+          <div class="gantt-container full" id="ganttFull"></div>
+        </div>
+      </div>
+
+      <!-- ===== USER MANAGEMENT (admin only) ===== -->
+      <div id="page-users" class="page hidden">
+        <div class="page-toolbar">
+          <h2>User &amp; Role Management</h2>
+          <button class="btn-primary" onclick="openModal('userModal')"><i class="fa fa-plus"></i> Add User</button>
+        </div>
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="userTable">
+              <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Email</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+              <tbody id="userTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end pageContent -->
+  </div><!-- end mainContent -->
+</div><!-- end mainApp -->
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-overlay hidden" id="notifOverlay" onclick="closeNotifications()"></div>
+<div class="notif-panel hidden" id="notifPanel">
+  <div class="notif-header">
+    <span>Notifications</span>
+    <button onclick="closeNotifications()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal()"></div>
+<div class="modal-box hidden" id="modalBox">
+  <div class="modal-header">
+    <span id="modalTitle">Modal</span>
+    <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- SCRIPTS -->
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
